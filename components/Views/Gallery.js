@@ -1,4 +1,4 @@
-import { View, Text, FlatList, TouchableOpacity } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, ToastAndroid } from "react-native";
 import React, { useEffect, useState } from "react";
 import style from "../../style";
 import * as MediaLibrary from "expo-media-library";
@@ -18,14 +18,14 @@ export default function Gallery({ route, navigation }) {
 
     useEffect(() => {
         getPhotos()
-        const focusSubscription = navigation.addListener(
+        const refreshGallery = navigation.addListener(
             'focus',
             () => {
               getPhotos();
             }
         )
         return () => {
-            focusSubscription()
+            refreshGallery()
         }
     }, [])
 
@@ -41,7 +41,7 @@ export default function Gallery({ route, navigation }) {
     async function getPhotos() {
         const album = await MediaLibrary.getAlbumAsync("DCIM")
         let data = await MediaLibrary.getAssetsAsync({
-            album:album,
+            album: album,
             first: 20,
             mediaType: 'photo'
         })
@@ -50,6 +50,12 @@ export default function Gallery({ route, navigation }) {
 
     async function deleteImages() {
         await MediaLibrary.deleteAssetsAsync(selectedImages)
+        ToastAndroid.showWithGravity(
+            `Usunięto ${selectedImages.length} zdjęć!`,
+            ToastAndroid.SHORT,
+            ToastAndroid.CENTER
+        );
+        setSelectedImages([])
         getPhotos()
     }
 
