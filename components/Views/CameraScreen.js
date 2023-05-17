@@ -1,4 +1,4 @@
-import { View, Text, BackHandler } from "react-native";
+import { View, Text, BackHandler, ToastAndroid } from "react-native";
 import React, { useEffect, useState } from "react";
 import { Camera } from "expo-camera";
 import * as MediaLibrary from "expo-media-library";
@@ -35,7 +35,11 @@ export default function CameraScreen({ route, navigation }) {
     async function takePhoto() {
         let foto = await this.camera.takePictureAsync();
         await MediaLibrary.createAssetAsync(foto.uri);
-        navigation.goBack();
+        ToastAndroid.showWithGravity(
+            `Zapisano zdjęcie!`,
+            ToastAndroid.SHORT,
+            ToastAndroid.CENTER
+        );
     }
 
     return (
@@ -56,7 +60,7 @@ export default function CameraScreen({ route, navigation }) {
                                 }}
                             />
                         </View>
-                        <View style={{flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", paddingRight: 75, position: 'absolute', bottom: 50 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", paddingRight: 75, position: 'absolute', bottom: 50 }}>
                             <View style={{ width: 75, height: 75 }}>
                                 <CircleButton
                                     onPress={() => {
