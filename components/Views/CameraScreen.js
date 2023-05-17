@@ -1,5 +1,5 @@
-import { View, Text, BackHandler, ToastAndroid } from "react-native";
-import React, { useEffect, useState } from "react";
+import { View, Text, BackHandler, ToastAndroid, Animated } from "react-native";
+import React, { useEffect, useState, useRef } from "react";
 import { Camera } from "expo-camera";
 import * as MediaLibrary from "expo-media-library";
 import style from "../../style";
@@ -10,6 +10,8 @@ import CircleButton from "../CircleButton";
 export default function CameraScreen({ route, navigation }) {
     const [cameraPermission, setCameraPermission] = useState(false);
     const [cameraType, setCameraType] = useState(Camera.Constants.Type.back);
+    const [hidden, setHidden] = useState(true)
+    const springAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         async function getCameraPermission() {
@@ -26,6 +28,21 @@ export default function CameraScreen({ route, navigation }) {
             );
         };
     }, []);
+
+    const showSettings = () => {
+        Animated.spring(
+            springAnim,
+            {
+                toValue: hidden ? 0 : 500,
+                velocity: 1,
+                tension: 0,
+                friction: 10,
+                useNativeDriver: true
+            }
+        ).start();
+
+        setHidden(prev => !prev)
+    }
 
     const handleBackPress = () => {
         navigation.goBack();
@@ -60,7 +77,7 @@ export default function CameraScreen({ route, navigation }) {
                                 }}
                             />
                         </View>
-                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", paddingRight: 75, position: 'absolute', bottom: 50 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", position: 'absolute', bottom: 50 }}>
                             <View style={{ width: 75, height: 75 }}>
                                 <CircleButton
                                     onPress={() => {
@@ -79,8 +96,23 @@ export default function CameraScreen({ route, navigation }) {
                                     content={require("../../assets/camera.png")}
                                 />
                             </View>
+                            <View style={{ width: 75, height: 75 }}>
+                                <CircleButton
+                                    onPress={showSettings}
+                                    content={require("../../assets/refresh.png")}
+                                />
+                            </View>
                         </View>
                     </View>
+                    <Animated.View style={[
+                        style.settings,
+                        {
+                            transform: [
+                                { translateY: springAnim }
+                            ]
+                        }]} >
+                        <Text>Data here</Text>
+                    </Animated.View>
                 </Camera>
             ) : (
                 <View style={[style.gallery, { justifyContent: "center" }]}>

@@ -22,6 +22,14 @@ const style = StyleSheet.create({
         height: 100,
         marginBottom: 10
     },
+    settings: {
+        position: "absolute",
+        bottom: -200,
+        left: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        height: "90%",
+        width: "50%",
+    },
     defaultText: {
         color: "#F5EBFF",
     },
