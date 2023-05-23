@@ -45,6 +45,7 @@ export default function Gallery({ route, navigation }) {
             first: 20,
             mediaType: 'photo'
         })
+        console.log(data.assets)
         setImages(data.assets)
     }
 
@@ -79,7 +80,7 @@ export default function Gallery({ route, navigation }) {
                         extraData={[selectedImages, wideDisplay]}
                         renderItem={({ item }) => (
                             <TouchableOpacity
-                                onPress={() => navigation.navigate("BigPhoto", {uri: item.uri, id: item.id})}
+                                onPress={() => navigation.navigate("BigPhoto", {uri: item.uri, id: item.id, height: item.height, width: item.width})}
                                 onLongPress={() => selectImage(item.id)}
                                 delayLongPress={500}
                             >

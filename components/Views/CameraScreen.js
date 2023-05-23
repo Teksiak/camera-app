@@ -1,4 +1,4 @@
-import { View, Text, BackHandler, ToastAndroid, Animated } from "react-native";
+import { View, Text, BackHandler, ToastAndroid, Animated, TouchableOpacity, ScrollView } from "react-native";
 import React, { useEffect, useState, useRef } from "react";
 import { Camera } from "expo-camera";
 import * as MediaLibrary from "expo-media-library";
@@ -6,12 +6,27 @@ import style from "../../style";
 import MyButton from "../MyButton";
 import BackButton from "../BackButton";
 import CircleButton from "../CircleButton";
+import RadioGroup from "../RadioGroup";
+
+const cameraRatios = {
+    "16:9": "16:9",
+    "4:3": "4:3",
+};
 
 export default function CameraScreen({ route, navigation }) {
+    const cameraRef = useRef();
     const [cameraPermission, setCameraPermission] = useState(false);
     const [cameraType, setCameraType] = useState(Camera.Constants.Type.back);
-    const [hidden, setHidden] = useState(true)
-    const springAnim = useRef(new Animated.Value(0)).current;
+    const [whiteBalance, setWhiteBalance] = useState(
+        Camera.Constants.WhiteBalance.auto
+    );
+    const [flashMode, setFlashMode] = useState(Camera.Constants.FlashMode.auto);
+    const [cameraRatio, setCameraRatio] = useState(cameraRatios["4:3"]);
+    const [pictureSize, setPictureSize] = useState("320x240");
+    const [allSizes, setAllSizes] = useState({});
+
+    const [hidden, setHidden] = useState(true);
+    const springAnim = useRef(new Animated.Value(-200)).current;
 
     useEffect(() => {
         async function getCameraPermission() {
@@ -29,20 +44,28 @@ export default function CameraScreen({ route, navigation }) {
         };
     }, []);
 
-    const showSettings = () => {
-        Animated.spring(
-            springAnim,
-            {
-                toValue: hidden ? 0 : 500,
-                velocity: 1,
-                tension: 0,
-                friction: 10,
-                useNativeDriver: true
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+            if(hidden) {
+                return
             }
-        ).start();
+            e.preventDefault()
+            showSettings()
+        })
+        return unsubscribe
+    }, [navigation, hidden])
 
-        setHidden(prev => !prev)
-    }
+    const showSettings = () => {
+        Animated.spring(springAnim, {
+            toValue: hidden ? 0 : -200,
+            velocity: 1,
+            tension: 0,
+            friction: 10,
+            useNativeDriver: true,
+        }).start();
+
+        setHidden((prev) => !prev);
+    };
 
     const handleBackPress = () => {
         navigation.goBack();
@@ -50,7 +73,7 @@ export default function CameraScreen({ route, navigation }) {
     };
 
     async function takePhoto() {
-        let foto = await this.camera.takePictureAsync();
+        let foto = await cameraRef.current.takePictureAsync();
         await MediaLibrary.createAssetAsync(foto.uri);
         ToastAndroid.showWithGravity(
             `Zapisano zdjęcie!`,
@@ -59,17 +82,51 @@ export default function CameraScreen({ route, navigation }) {
         );
     }
 
+    const getSizes = async () => {
+        if (cameraRef.current) {
+            const data = await cameraRef.current.getAvailablePictureSizesAsync(cameraRatio);
+            setPictureSize(data[0])
+            let temp = {}
+            data.map(el => {
+                temp[el] = el
+            })
+            setAllSizes(temp)
+        }
+    };
+
     return (
         <View style={{ flex: 1 }}>
             {cameraPermission ? (
                 <Camera
+                    onCameraReady={() => {
+                        getSizes()
+                    }}
                     ref={(ref) => {
-                        this.camera = ref; // Uwaga: referencja do kamery używana później
+                        cameraRef.current = ref; // Uwaga: referencja do kamery używana później
                     }}
                     style={{ flex: 1 }}
                     type={cameraType}
+                    ratio={cameraRatio}
+                    whiteBalance={whiteBalance}
+                    pictureSize={pictureSize}
+                    flashMode={flashMode}
                 >
                     <View style={{ flex: 1 }}>
+                    <Animated.View
+                        style={[
+                            style.settings,
+                            {
+                                transform: [{ translateX: springAnim }],
+                            },
+                        ]}
+                    >
+                        <ScrollView style={{zIndex: 5, display: 'flex', flexDirection: 'column', gap: 20}}>
+                            <RadioGroup title={"White Balance"} data={Camera.Constants.WhiteBalance} action={setWhiteBalance} option={"auto"}/>
+                            <RadioGroup title={"Flash Mode"} data={Camera.Constants.FlashMode} action={setFlashMode} option={"auto"}/>
+                            <RadioGroup title={"Camera Ratio"} data={cameraRatios} action={setCameraRatio} option={cameraRatio}/>
+                            <RadioGroup title={"Picture Sizes"} data={allSizes} action={setPictureSize} option={pictureSize}/>
+                        </ScrollView>
+                    </Animated.View>
                         <View style={{ margin: 15 }}>
                             <BackButton
                                 passedFunc={() => {
@@ -77,7 +134,17 @@ export default function CameraScreen({ route, navigation }) {
                                 }}
                             />
                         </View>
-                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", position: 'absolute', bottom: 50 }}>
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 10,
+                                width: "100%",
+                                position: "absolute",
+                                bottom: 50,
+                            }}
+                        >
                             <View style={{ width: 75, height: 75 }}>
                                 <CircleButton
                                     onPress={() => {
@@ -99,20 +166,11 @@ export default function CameraScreen({ route, navigation }) {
                             <View style={{ width: 75, height: 75 }}>
                                 <CircleButton
                                     onPress={showSettings}
-                                    content={require("../../assets/refresh.png")}
+                                    content={require("../../assets/settings.png")}
                                 />
                             </View>
                         </View>
                     </View>
-                    <Animated.View style={[
-                        style.settings,
-                        {
-                            transform: [
-                                { translateY: springAnim }
-                            ]
-                        }]} >
-                        <Text>Data here</Text>
-                    </Animated.View>
                 </Camera>
             ) : (
                 <View style={[style.gallery, { justifyContent: "center" }]}>
