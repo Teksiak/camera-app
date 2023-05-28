@@ -3,6 +3,7 @@ import React, { useEffect } from "react";
 import style from "../../style";
 import * as MediaLibrary from "expo-media-library";
 import { useFonts } from "expo-font";
+import * as SecureStore from "expo-secure-store";
 
 export default function Main({ route, navigation }) {
     const [fontsLoaded] = useFonts({
@@ -17,7 +18,20 @@ export default function Main({ route, navigation }) {
                 alert("No media permission granted!");
             }
         }
+        async function checkServerData() {
+            let tempIP = await SecureStore.getItemAsync("IP");
+            let tempPORT = await SecureStore.getItemAsync("PORT");
+            if(!tempIP) {
+                await SecureStore.setItemAsync("IP", "192.168.68.1")
+            }
+            if(!tempPORT) {
+                await SecureStore.setItemAsync("PORT", "5000")
+            }
+        }
         getPermission();
+        checkServerData()
+
+        
     }, []);
 
     return (

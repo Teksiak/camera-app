@@ -24,7 +24,7 @@ const style = StyleSheet.create({
     },
     settings: {
         position: "absolute",
-        top: 55,
+        top: 90,
         left: 0,
         backgroundColor: "rgba(0, 0, 0, 0.5)",
         height: 550,

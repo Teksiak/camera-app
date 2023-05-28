@@ -1,7 +1,17 @@
-import { View, Text, BackHandler, ToastAndroid, Animated, TouchableOpacity, ScrollView } from "react-native";
+import {
+    View,
+    Text,
+    BackHandler,
+    ToastAndroid,
+    Animated,
+    TouchableOpacity,
+    ScrollView,
+} from "react-native";
 import React, { useEffect, useState, useRef } from "react";
 import { Camera } from "expo-camera";
 import * as MediaLibrary from "expo-media-library";
+import * as ImagePicker from "expo-image-picker";
+import * as SecureStore from "expo-secure-store";
 import style from "../../style";
 import MyButton from "../MyButton";
 import BackButton from "../BackButton";
@@ -45,15 +55,15 @@ export default function CameraScreen({ route, navigation }) {
     }, []);
 
     useEffect(() => {
-        const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-            if(hidden) {
-                return
+        const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+            if (hidden) {
+                return;
             }
-            e.preventDefault()
-            showSettings()
-        })
-        return unsubscribe
-    }, [navigation, hidden])
+            e.preventDefault();
+            showSettings();
+        });
+        return unsubscribe;
+    }, [navigation, hidden]);
 
     const showSettings = () => {
         Animated.spring(springAnim, {
@@ -76,7 +86,7 @@ export default function CameraScreen({ route, navigation }) {
         let foto = await cameraRef.current.takePictureAsync();
         await MediaLibrary.createAssetAsync(foto.uri);
         ToastAndroid.showWithGravity(
-            `Zapisano zdjęcie!`,
+            `Saved photo!`,
             ToastAndroid.SHORT,
             ToastAndroid.CENTER
         );
@@ -84,13 +94,52 @@ export default function CameraScreen({ route, navigation }) {
 
     const getSizes = async () => {
         if (cameraRef.current) {
-            const data = await cameraRef.current.getAvailablePictureSizesAsync(cameraRatio);
-            setPictureSize(data[0])
-            let temp = {}
-            data.map(el => {
-                temp[el] = el
-            })
-            setAllSizes(temp)
+            const data = await cameraRef.current.getAvailablePictureSizesAsync(
+                cameraRatio
+            );
+            setPictureSize(data[0]);
+            let temp = {};
+            data.map((el) => {
+                temp[el] = el;
+            });
+            setAllSizes(temp);
+        }
+    };
+
+    const showGallery = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.All,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 1,
+        });
+
+        if (!result.canceled) {
+            const IP = await SecureStore.getItemAsync("IP");
+            const PORT = await SecureStore.getItemAsync("PORT");
+            try {
+                const data = new FormData();
+                data.append("image", {
+                    uri: result.assets[0].uri,
+                    name: 'name.jpg',
+                    type: 'image/jpg'
+                });
+                await fetch(`http://${IP}:${PORT}/upload`, {
+                    method: 'POST',
+                    body: data
+                })
+                ToastAndroid.showWithGravity(
+                    `Image successfully sent!`,
+                    ToastAndroid.SHORT,
+                    ToastAndroid.CENTER
+                );
+            } catch (error) {
+                ToastAndroid.showWithGravity(
+                    `Something went wrong!`,
+                    ToastAndroid.SHORT,
+                    ToastAndroid.CENTER
+                );
+            }
         }
     };
 
@@ -99,7 +148,7 @@ export default function CameraScreen({ route, navigation }) {
             {cameraPermission ? (
                 <Camera
                     onCameraReady={() => {
-                        getSizes()
+                        getSizes();
                     }}
                     ref={(ref) => {
                         cameraRef.current = ref; // Uwaga: referencja do kamery używana później
@@ -112,26 +161,59 @@ export default function CameraScreen({ route, navigation }) {
                     flashMode={flashMode}
                 >
                     <View style={{ flex: 1 }}>
-                    <Animated.View
-                        style={[
-                            style.settings,
-                            {
-                                transform: [{ translateX: springAnim }],
-                            },
-                        ]}
-                    >
-                        <ScrollView style={{zIndex: 5, display: 'flex', flexDirection: 'column', gap: 20}}>
-                            <RadioGroup title={"White Balance"} data={Camera.Constants.WhiteBalance} action={setWhiteBalance} option={"auto"}/>
-                            <RadioGroup title={"Flash Mode"} data={Camera.Constants.FlashMode} action={setFlashMode} option={"auto"}/>
-                            <RadioGroup title={"Camera Ratio"} data={cameraRatios} action={setCameraRatio} option={cameraRatio}/>
-                            <RadioGroup title={"Picture Sizes"} data={allSizes} action={setPictureSize} option={pictureSize}/>
-                        </ScrollView>
-                    </Animated.View>
+                        <Animated.View
+                            style={[
+                                style.settings,
+                                {
+                                    transform: [{ translateX: springAnim }],
+                                },
+                            ]}
+                        >
+                            <ScrollView
+                                style={{
+                                    zIndex: 5,
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 20,
+                                }}
+                            >
+                                <RadioGroup
+                                    title={"White Balance"}
+                                    data={Camera.Constants.WhiteBalance}
+                                    action={setWhiteBalance}
+                                    option={"auto"}
+                                />
+                                <RadioGroup
+                                    title={"Flash Mode"}
+                                    data={Camera.Constants.FlashMode}
+                                    action={setFlashMode}
+                                    option={"auto"}
+                                />
+                                <RadioGroup
+                                    title={"Camera Ratio"}
+                                    data={cameraRatios}
+                                    action={setCameraRatio}
+                                    option={cameraRatio}
+                                />
+                                <RadioGroup
+                                    title={"Picture Sizes"}
+                                    data={allSizes}
+                                    action={setPictureSize}
+                                    option={pictureSize}
+                                />
+                            </ScrollView>
+                        </Animated.View>
                         <View style={{ margin: 15 }}>
                             <BackButton
                                 passedFunc={() => {
                                     navigation.goBack();
                                 }}
+                            />
+                        </View>
+                        <View style={{ width: 30, height: 30, marginLeft: 12 }}>
+                            <CircleButton
+                                onPress={showSettings}
+                                content={require("../../assets/settings.png")}
                             />
                         </View>
                         <View
@@ -165,8 +247,8 @@ export default function CameraScreen({ route, navigation }) {
                             </View>
                             <View style={{ width: 75, height: 75 }}>
                                 <CircleButton
-                                    onPress={showSettings}
-                                    content={require("../../assets/settings.png")}
+                                    onPress={showGallery}
+                                    content={require("../../assets/gallery.png")}
                                 />
                             </View>
                         </View>

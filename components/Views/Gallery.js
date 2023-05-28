@@ -8,6 +8,7 @@ import {
 import React, { useEffect, useState } from "react";
 import style from "../../style";
 import * as MediaLibrary from "expo-media-library";
+import * as SecureStore from "expo-secure-store";
 import { useFonts } from "expo-font";
 import BackButton from "../BackButton";
 import MyButton from "../MyButton";
@@ -51,14 +52,64 @@ export default function Gallery({ route, navigation }) {
     }
 
     async function deleteImages() {
-        await MediaLibrary.deleteAssetsAsync(selectedImages);
-        ToastAndroid.showWithGravity(
-            `Usunięto ${selectedImages.length} zdjęć!`,
-            ToastAndroid.SHORT,
-            ToastAndroid.CENTER
-        );
-        setSelectedImages([]);
-        getPhotos();
+        if(selectedImages.length != 0) {
+            await MediaLibrary.deleteAssetsAsync(selectedImages);
+            ToastAndroid.showWithGravity(
+                `Usunięto ${selectedImages.length} zdjęć!`,
+                ToastAndroid.SHORT,
+                ToastAndroid.CENTER
+            );
+            setSelectedImages([]);
+            getPhotos();
+        }
+        else {
+            ToastAndroid.showWithGravity(
+                `Please select some images first!`,
+                ToastAndroid.SHORT,
+                ToastAndroid.CENTER
+            );
+        }
+    }
+
+    const uploadPhotos = async () => {
+        if(selectedImages.length != 0) {
+            const IP = await SecureStore.getItemAsync("IP");
+            const PORT = await SecureStore.getItemAsync("PORT");
+            try {
+                const data = new FormData();
+                for(const el of selectedImages) {
+                    const image = await MediaLibrary.getAssetInfoAsync(el)
+                    data.append("image", {
+                        uri: image.uri,
+                        name: image.filename,
+                        type: 'image/jpg'
+                    });
+                }
+                await fetch(`http://${IP}:${PORT}/upload`, {
+                    method: 'POST',
+                    body: data
+                })
+                setSelectedImages([]);
+                ToastAndroid.showWithGravity(
+                    `Images successfully sent!`,
+                    ToastAndroid.SHORT,
+                    ToastAndroid.CENTER
+                );
+            } catch (error) {
+                ToastAndroid.showWithGravity(
+                    `Something went wrong!`,
+                    ToastAndroid.SHORT,
+                    ToastAndroid.CENTER
+                );
+            }
+        }
+        else {
+            ToastAndroid.showWithGravity(
+                `Please select some images first!`,
+                ToastAndroid.SHORT,
+                ToastAndroid.CENTER
+            );
+        }
     }
 
     return (
@@ -156,7 +207,7 @@ export default function Gallery({ route, navigation }) {
                             fgColor={"#ea1e63"}
                         />
                         <MyButton
-                            onPress={deleteImages}
+                            onPress={uploadPhotos}
                             text={"Upload"}
                             bgColor={"#ea1e63"}
                             fgColor={"#fff"}
